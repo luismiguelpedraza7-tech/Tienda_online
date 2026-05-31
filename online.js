@@ -431,18 +431,30 @@ async function abrirMisPedidos() {
 }
 
 // ─── INIT ─────────────────────────────────────────────────────
+function mostrarTienda() {
+  document.getElementById('pantalla-login').style.display  = 'none';
+  document.getElementById('pantalla-tienda').style.display = 'block';
+}
+
 async function init() {
-  // Verificar sesión del comprador (si hizo login con Google)
-  const { data: { session } } = await sb.auth.getSession();
-  clienteUser = session?.user || null;
-  actualizarHeaderAuth();
+  // Botón Google en pantalla login
+  const btnGoogle = document.getElementById('btnGoogle');
+  if (btnGoogle) btnGoogle.addEventListener('click', iniciarSesion);
 
   // Escuchar cambios de auth (callback de Google OAuth)
   sb.auth.onAuthStateChange((_event, session) => {
     clienteUser = session?.user || null;
     actualizarHeaderAuth();
+    mostrarTienda();
   });
 
+  // Verificar sesión actual
+  const { data: { session } } = await sb.auth.getSession();
+  clienteUser = session?.user || null;
+  actualizarHeaderAuth();
+
+  // La tienda es pública — mostrar siempre sin requerir login
+  mostrarTienda();
   await cargarProductos();
 }
 
