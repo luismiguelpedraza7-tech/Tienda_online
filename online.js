@@ -365,7 +365,7 @@ async function confirmarPedido() {
     document.getElementById('chkDireccion').value = '';
     document.getElementById('chkNotas').value     = '';
 
-    alert(`✅ ¡Pedido confirmado!\n\nTu pedido #${pedido.id} fue recibido.\nTe contactaremos pronto al número ${telefono}.\n\n¡Gracias por tu compra! 🎉`);
+    alert(`✅ ¡Pedido confirmado!\n\nTu pedido #${String(pedido.numero_pedido).padStart(3,'0')} fue recibido.\nTe contactaremos pronto al número ${telefono}.\n\n¡Gracias por tu compra! 🎉`);
 
   } catch (err) {
     console.error('Error al confirmar pedido:', err);
