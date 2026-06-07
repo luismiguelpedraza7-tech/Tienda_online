@@ -41,7 +41,10 @@ const inputBuscar      = document.getElementById('inputBuscar');
 async function iniciarSesion() {
   await sb.auth.signInWithOAuth({
     provider: 'google',
-    options: { redirectTo: window.location.href }
+    options: {
+      redirectTo: window.location.href,
+      queryParams: { prompt: 'select_account' }  // fuerza selección de cuenta
+    }
   });
 }
 
@@ -441,19 +444,20 @@ async function init() {
   const btnGoogle = document.getElementById('btnGoogle');
   if (btnGoogle) btnGoogle.addEventListener('click', iniciarSesion);
 
-  // Escuchar cambios de auth (callback de Google OAuth)
-  sb.auth.onAuthStateChange((_event, session) => {
+  // Escuchar cambios de auth (login, logout, cambio de cuenta)
+  sb.auth.onAuthStateChange((event, session) => {
     clienteUser = session?.user || null;
     actualizarHeaderAuth();
+    // Siempre mostrar la tienda sin importar el evento
     mostrarTienda();
   });
 
-  // Verificar sesión actual
+  // Verificar sesión actual al cargar
   const { data: { session } } = await sb.auth.getSession();
   clienteUser = session?.user || null;
   actualizarHeaderAuth();
 
-  // La tienda es pública — mostrar siempre sin requerir login
+  // La tienda es pública — siempre visible
   mostrarTienda();
   await cargarProductos();
 }
