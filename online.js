@@ -38,10 +38,13 @@ const listaMisPedidos  = document.getElementById('listaMisPedidos');
 const inputBuscar      = document.getElementById('inputBuscar');
 
 // ─── AUTH (cliente comprador) ─────────────────────────────────
-async function iniciarSesion() {
+async function iniciarSesion(forzarCuenta = false) {
   await sb.auth.signInWithOAuth({
     provider: 'google',
-    options: { redirectTo: window.location.href }
+    options: {
+      redirectTo: window.location.href,
+      queryParams: forzarCuenta ? { prompt: 'select_account' } : {}
+    }
   });
 }
 
@@ -52,17 +55,48 @@ async function cerrarSesion() {
 }
 
 function actualizarHeaderAuth() {
-  const btnLogout    = document.getElementById('btnLogout');
-  const btnMisPedidos = document.getElementById('btnMisPedidos');
+  const btnUserMenu   = document.getElementById('btnUserMenu');
+  const menuSinSesion = document.getElementById('menuSinSesion');
+  const menuConSesion = document.getElementById('menuConSesion');
+  const menuUserEmail = document.getElementById('menuUserEmail');
+  if (!btnUserMenu) return;
+
   if (clienteUser) {
-    btnLogout.textContent = 'Salir';
-    btnLogout.onclick = cerrarSesion;
-    btnMisPedidos.style.display = 'inline-block';
+    const email  = clienteUser.email || '';
+    const nombre = clienteUser.user_metadata?.full_name || clienteUser.user_metadata?.name || email.split('@')[0];
+    btnUserMenu.textContent = nombre;
+    if (menuUserEmail) menuUserEmail.textContent = email;
+    if (menuSinSesion) menuSinSesion.style.display = 'none';
+    if (menuConSesion) menuConSesion.style.display = 'block';
   } else {
-    btnLogout.textContent = 'Iniciar sesión';
-    btnLogout.onclick = iniciarSesion;
-    btnMisPedidos.style.display = 'none';
+    btnUserMenu.textContent = 'Iniciar sesion';
+    if (menuSinSesion) menuSinSesion.style.display = 'block';
+    if (menuConSesion) menuConSesion.style.display = 'none';
   }
+}
+
+function inicializarMenuUsuario() {
+  const btnUserMenu    = document.getElementById('btnUserMenu');
+  const dropdown       = document.getElementById('userMenuDropdown');
+  const menuBtnLogin   = document.getElementById('menuBtnLogin');
+  const menuBtnPedidos = document.getElementById('menuBtnPedidos');
+  const menuBtnCambiar = document.getElementById('menuBtnCambiarCuenta');
+  const menuBtnSalir   = document.getElementById('menuBtnSalir');
+
+  if (!btnUserMenu || !dropdown) return;
+
+  btnUserMenu.addEventListener('click', (e) => {
+    e.stopPropagation();
+    dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+  });
+
+  document.addEventListener('click', () => { dropdown.style.display = 'none'; });
+  dropdown.addEventListener('click', (e) => e.stopPropagation());
+
+  if (menuBtnLogin)   menuBtnLogin.addEventListener('click',   () => { dropdown.style.display='none'; iniciarSesion(false); });
+  if (menuBtnPedidos) menuBtnPedidos.addEventListener('click', () => { dropdown.style.display='none'; abrirMisPedidos(); });
+  if (menuBtnCambiar) menuBtnCambiar.addEventListener('click', () => { dropdown.style.display='none'; iniciarSesion(true); });
+  if (menuBtnSalir)   menuBtnSalir.addEventListener('click',   () => { dropdown.style.display='none'; cerrarSesion(); });
 }
 
 // ─── CARGAR PRODUCTOS (solo del dueño de la tienda) ───────────
@@ -185,7 +219,50 @@ inputBuscar.addEventListener('input', () => {
 });
 
 // ─── CARRITO ──────────────────────────────────────────────────
+
+// ─── MODAL LOGIN REQUERIDO ────────────────────────────────────
+function mostrarModalLogin() {
+  // Crear modal si no existe
+  let modal = document.getElementById('modalLoginRequerido');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'modalLoginRequerido';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:600;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;';
+    modal.innerHTML = `
+      <div style="background:#fff;border-radius:20px;padding:32px 24px;max-width:360px;width:100%;text-align:center;">
+        <div style="font-size:3rem;margin-bottom:12px;">🛒</div>
+        <h3 style="margin:0 0 8px;font-size:1.2rem;color:#222;">Inicia sesión para comprar</h3>
+        <p style="color:#888;font-size:.9rem;margin:0 0 24px;line-height:1.5;">Necesitas una cuenta para agregar productos al carrito y realizar pedidos.</p>
+        <button id="modalLoginBtn" style="width:100%;padding:12px;background:#2d6a4f;color:#fff;border:none;border-radius:12px;font-size:1rem;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:10px;">
+          <svg viewBox="0 0 48 48" width="18" height="18"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+          Iniciar sesión con Google
+        </button>
+        <button id="modalLoginCerrar" style="width:100%;padding:10px;background:transparent;border:2px solid #ddd;border-radius:12px;font-size:.9rem;cursor:pointer;font-family:inherit;color:#666;">Seguir viendo productos</button>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    document.getElementById('modalLoginBtn').addEventListener('click', () => {
+      modal.style.display = 'none';
+      iniciarSesion(false);
+    });
+    document.getElementById('modalLoginCerrar').addEventListener('click', () => {
+      modal.style.display = 'none';
+    });
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) modal.style.display = 'none';
+    });
+  } else {
+    modal.style.display = 'flex';
+  }
+}
+
 function agregarAlCarrito(producto) {
+  // Requiere sesión para comprar
+  if (!clienteUser) {
+    mostrarModalLogin();
+    return;
+  }
+
   const item = carrito.find(i => i.producto.id === producto.id);
   const enCarrito = item ? item.cantidad : 0;
 
@@ -377,7 +454,7 @@ async function confirmarPedido() {
 }
 
 // ─── MIS PEDIDOS (historial del comprador) ────────────────────
-document.getElementById('btnMisPedidos').addEventListener('click', abrirMisPedidos);
+// btnMisPedidos ahora está en el menú desplegable
 document.getElementById('btnCerrarMisPedidos').addEventListener('click', () => {
   modalMisPedidos.style.display = 'none';
 });
@@ -438,21 +515,12 @@ function mostrarTienda() {
 
 async function init() {
   // Botón Google en pantalla login
+  inicializarMenuUsuario();
   const btnGoogle = document.getElementById('btnGoogle');
   if (btnGoogle) btnGoogle.addEventListener('click', iniciarSesion);
 
-  // Si hay un #access_token en la URL (callback de Google), procesarlo primero
-  if (window.location.hash && window.location.hash.includes('access_token')) {
-    const { data, error } = await sb.auth.getSessionFromUrl();
-    if (!error && data?.session) {
-      clienteUser = data.session.user;
-      // Limpiar el hash feo de la URL
-      window.history.replaceState(null, '', window.location.pathname);
-    }
-  }
-
-  // Escuchar cambios de auth
-  sb.auth.onAuthStateChange((event, session) => {
+  // Escuchar cambios de auth (callback de Google OAuth)
+  sb.auth.onAuthStateChange((_event, session) => {
     clienteUser = session?.user || null;
     actualizarHeaderAuth();
     mostrarTienda();
@@ -468,4 +536,85 @@ async function init() {
   await cargarProductos();
 }
 
-init();
+init();// Estilos inyectados para el menú de usuario
+(function() {
+  const style = document.createElement('style');
+  style.textContent = `
+    .user-menu-container { position: relative; }
+
+    .btn-user-menu {
+      background: transparent;
+      border: 2px solid #2d6a4f;
+      color: #2d6a4f;
+      border-radius: 10px;
+      padding: 7px 14px;
+      font-size: .875rem;
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: 700;
+      max-width: 160px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .btn-user-menu:hover { background: #f0faf4; }
+
+    .user-menu-dropdown {
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.15);
+      min-width: 260px;
+      z-index: 500;
+      overflow: hidden;
+      border: 1px solid #e8e8e8;
+    }
+
+    .user-menu-hint {
+      padding: 14px 16px 10px;
+      font-size: .8rem;
+      color: #888;
+      line-height: 1.4;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .user-menu-email {
+      padding: 12px 16px 8px;
+      font-size: .85rem;
+      font-weight: 700;
+      color: #333;
+      border-bottom: 1px solid #f0f0f0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .user-menu-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      padding: 12px 16px;
+      background: none;
+      border: none;
+      font-family: inherit;
+      font-size: .9rem;
+      cursor: pointer;
+      text-align: left;
+      color: #333;
+      transition: background .15s;
+    }
+    .user-menu-item:hover { background: #f5f5f5; }
+    .user-menu-login { color: #2d6a4f; font-weight: 700; }
+    .user-menu-salir { color: #e63946; }
+
+    .user-menu-divider {
+      border: none;
+      border-top: 1px solid #f0f0f0;
+      margin: 4px 0;
+    }
+  `;
+  document.head.appendChild(style);
+})();
