@@ -41,10 +41,7 @@ const inputBuscar      = document.getElementById('inputBuscar');
 async function iniciarSesion() {
   await sb.auth.signInWithOAuth({
     provider: 'google',
-    options: {
-      redirectTo: window.location.href,
-      queryParams: { prompt: 'select_account' }  // fuerza selección de cuenta
-    }
+    options: { redirectTo: window.location.href }
   });
 }
 
@@ -444,20 +441,29 @@ async function init() {
   const btnGoogle = document.getElementById('btnGoogle');
   if (btnGoogle) btnGoogle.addEventListener('click', iniciarSesion);
 
-  // Escuchar cambios de auth (login, logout, cambio de cuenta)
+  // Si hay un #access_token en la URL (callback de Google), procesarlo primero
+  if (window.location.hash && window.location.hash.includes('access_token')) {
+    const { data, error } = await sb.auth.getSessionFromUrl();
+    if (!error && data?.session) {
+      clienteUser = data.session.user;
+      // Limpiar el hash feo de la URL
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+  }
+
+  // Escuchar cambios de auth
   sb.auth.onAuthStateChange((event, session) => {
     clienteUser = session?.user || null;
     actualizarHeaderAuth();
-    // Siempre mostrar la tienda sin importar el evento
     mostrarTienda();
   });
 
-  // Verificar sesión actual al cargar
+  // Verificar sesión actual
   const { data: { session } } = await sb.auth.getSession();
   clienteUser = session?.user || null;
   actualizarHeaderAuth();
 
-  // La tienda es pública — siempre visible
+  // La tienda es pública — mostrar siempre sin requerir login
   mostrarTienda();
   await cargarProductos();
 }
