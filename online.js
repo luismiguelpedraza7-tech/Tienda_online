@@ -520,10 +520,17 @@ async function init() {
   if (btnGoogle) btnGoogle.addEventListener('click', iniciarSesion);
 
   // Escuchar cambios de auth (callback de Google OAuth)
-  sb.auth.onAuthStateChange((_event, session) => {
+  sb.auth.onAuthStateChange(async (_event, session) => {
     clienteUser = session?.user || null;
     actualizarHeaderAuth();
-    mostrarTienda();
+    if (clienteUser) {
+      mostrarTienda();
+      await cargarProductos();
+    } else {
+      // Si cierra sesión, volver a la pantalla de login
+      document.getElementById('pantalla-login').style.display  = 'flex';
+      document.getElementById('pantalla-tienda').style.display = 'none';
+    }
   });
 
   // Verificar sesión actual
@@ -531,9 +538,12 @@ async function init() {
   clienteUser = session?.user || null;
   actualizarHeaderAuth();
 
-  // La tienda es pública — mostrar siempre sin requerir login
-  mostrarTienda();
-  await cargarProductos();
+  // Solo mostrar tienda si ya hay sesión activa
+  if (clienteUser) {
+    mostrarTienda();
+    await cargarProductos();
+  }
+  // Si no hay sesión, la pantalla de login ya está visible por defecto
 }
 
 init();// Estilos inyectados para el menú de usuario
