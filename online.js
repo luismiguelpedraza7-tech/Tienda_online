@@ -519,31 +519,33 @@ async function init() {
   const btnGoogle = document.getElementById('btnGoogle');
   if (btnGoogle) btnGoogle.addEventListener('click', iniciarSesion);
 
-  // Escuchar cambios de auth (callback de Google OAuth)
-  sb.auth.onAuthStateChange(async (_event, session) => {
-    clienteUser = session?.user || null;
-    actualizarHeaderAuth();
-    if (clienteUser) {
-      mostrarTienda();
-      await cargarProductos();
-    } else {
-      // Si cierra sesión, volver a la pantalla de login
-      document.getElementById('pantalla-login').style.display  = 'flex';
-      document.getElementById('pantalla-tienda').style.display = 'none';
-    }
-  });
-
-  // Verificar sesión actual
+  // Verificar sesión actual primero
   const { data: { session } } = await sb.auth.getSession();
   clienteUser = session?.user || null;
   actualizarHeaderAuth();
 
-  // Solo mostrar tienda si ya hay sesión activa
   if (clienteUser) {
     mostrarTienda();
     await cargarProductos();
   }
-  // Si no hay sesión, la pantalla de login ya está visible por defecto
+  // Si no hay sesión, la pantalla login ya está visible por defecto
+
+  // Escuchar cambios de auth posteriores (login / logout)
+  sb.auth.onAuthStateChange(async (_event, newSession) => {
+    const anteriorUser = clienteUser;
+    clienteUser = newSession?.user || null;
+    actualizarHeaderAuth();
+
+    if (clienteUser && !anteriorUser) {
+      // Acaba de iniciar sesión
+      mostrarTienda();
+      await cargarProductos();
+    } else if (!clienteUser && anteriorUser) {
+      // Acaba de cerrar sesión
+      document.getElementById('pantalla-login').style.display  = 'flex';
+      document.getElementById('pantalla-tienda').style.display = 'none';
+    }
+  });
 }
 
 init();// Estilos inyectados para el menú de usuario
