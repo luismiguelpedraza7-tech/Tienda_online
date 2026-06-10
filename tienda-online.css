@@ -404,7 +404,10 @@ body { margin: 0; font-family: 'Nunito', sans-serif; background: #f5f5f5; }
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, #0d2233 0%, #0a3d2e 60%, #0d2233 100%);
+  background-image: linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.45)),
+    url(https://preview.redd.it/futuristic-city-at-dusk-4k-v0-0l8pcbaab7n51.jpg?auto=webp&s=cd5621e05c5bbe95fb4e97f685f7dedae0e41d87);
+  background-size: cover;
+  background-position: center;
 }
 @keyframes floatCard {
   0%, 100% { transform: perspective(800px) rotateX(4deg) rotateY(-3deg) translateY(0px); }
@@ -447,6 +450,7 @@ body { margin: 0; font-family: 'Nunito', sans-serif; background: #f5f5f5; }
 .btn-google {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 10px;
   padding: 12px 24px;
   background: #fff;
@@ -458,6 +462,8 @@ body { margin: 0; font-family: 'Nunito', sans-serif; background: #f5f5f5; }
   cursor: pointer;
   box-shadow: 0 4px 12px rgba(0,0,0,.15);
   transition: box-shadow .2s;
+  margin: 0 auto;
+  width: 100%;
 }
 .btn-google:hover { box-shadow: 0 6px 20px rgba(0,0,0,.2); }
 
@@ -472,11 +478,11 @@ body { margin: 0; font-family: 'Nunito', sans-serif; background: #f5f5f5; }
 
 /* ─── Anillo animado login ───────────────────────────────── */
 @keyframes barGlowTienda {
-  0%   { background-color: #1b4332; box-shadow: none; }
-  25%  { background-color: #52b788; box-shadow: 0 0 12px #52b788, 0 0 28px #2d6a4f; }
-  50%  { background-color: #1b4332; box-shadow: none; }
-  75%  { background-color: #52b788; box-shadow: 0 0 12px #52b788, 0 0 28px #2d6a4f; }
-  100% { background-color: #1b4332; box-shadow: none; }
+  0%   { background-color: #0d2233; box-shadow: none; }
+  25%  { background-color: #00e5ff; box-shadow: 0 0 12px #00e5ff, 0 0 28px #00bcd4; }
+  50%  { background-color: #0d2233; box-shadow: none; }
+  75%  { background-color: #00e5ff; box-shadow: 0 0 12px #00e5ff, 0 0 28px #00bcd4; }
+  100% { background-color: #0d2233; box-shadow: none; }
 }
 
 .login-ring-container {
@@ -507,7 +513,7 @@ body { margin: 0; font-family: 'Nunito', sans-serif; background: #f5f5f5; }
   height: clamp(28px, calc(var(--ring-size) * 0.071), 55px);
   border-radius: 5px;
   transform-origin: 6px calc(var(--ring-size) * 0.464);
-  background-color: #1b4332;
+  background-color: #0d2233;
   animation: barGlowTienda 10s ease-in-out infinite;
 }
 
