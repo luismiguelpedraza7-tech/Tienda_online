@@ -452,7 +452,7 @@ async function abrirMisPedidos() {
 
   const { data, error } = await sb
     .from('pedidos')
-    .select('id, estado, total, fecha, items_pedido(nombre, cantidad, precio)')
+    .select('id, numero_pedido, estado, total, fecha, items_pedido(nombre, cantidad, precio)')
     .eq('cliente_email', clienteUser.email)
     .eq('tienda_user_id', TIENDA_OWNER_ID)
     .order('id', { ascending: false });
@@ -479,7 +479,7 @@ async function abrirMisPedidos() {
   listaMisPedidos.innerHTML = data.map(p => `
     <div class="pedido-cliente-card">
       <div class="pedido-cliente-header">
-        <span><strong>Pedido #${p.id}</strong></span>
+        <span><strong>Pedido #${p.numero_pedido ? String(p.numero_pedido).padStart(3,'0') : p.id}</strong></span>
         <span class="pedido-estado-badge">${ESTADO_LABELS[p.estado] || p.estado}</span>
       </div>
       <div class="pedido-cliente-items">
