@@ -182,7 +182,7 @@ function crearCardProducto(p) {
   div.dataset.id = p.id;
 
   const img = p.imagen_url
-    ? `<img src="${p.imagen_url}" alt="${p.nombre}" class="producto-img" loading="lazy">`
+    ? `<img src="${p.imagen_url}" alt="${p.nombre}" class="producto-img" loading="lazy" onerror="this.onerror=null; this.outerHTML='<div class=&quot;producto-img-placeholder&quot;>📦</div>';">`
     : `<div class="producto-img-placeholder">📦</div>`;
 
   div.innerHTML = `
@@ -232,8 +232,12 @@ document.getElementById('categoriasFiltro').addEventListener('click', e => {
   aplicarFiltrosActuales();
 });
 
+let debounceBusqueda = null;
 inputBuscar.addEventListener('input', () => {
-  aplicarFiltrosActuales();
+  clearTimeout(debounceBusqueda);
+  debounceBusqueda = setTimeout(() => {
+    aplicarFiltrosActuales();
+  }, 250); // espera 250ms de pausa antes de filtrar, evita recalcular en cada tecla
 });
 
 // ─── CARRITO ──────────────────────────────────────────────────
