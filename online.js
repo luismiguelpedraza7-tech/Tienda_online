@@ -100,10 +100,12 @@ function inicializarMenuUsuario() {
 }
 
 // ─── CARGAR PRODUCTOS (solo del dueño de la tienda) ───────────
-async function cargarProductos() {
-  loadingMsg.style.display = 'block';
-  emptyMsg.style.display   = 'none';
-  tiendaContenido.innerHTML = '';
+async function cargarProductos(silencioso = false) {
+  if (!silencioso) {
+    loadingMsg.style.display = 'block';
+    emptyMsg.style.display   = 'none';
+    tiendaContenido.innerHTML = '';
+  }
 
   const { data, error } = await sb
     .from('productos')
@@ -116,8 +118,10 @@ async function cargarProductos() {
 
   if (error) {
     console.error('Error cargando productos:', error);
-    emptyMsg.textContent = 'Error al cargar productos. Intenta más tarde.';
-    emptyMsg.style.display = 'block';
+    if (!silencioso) {
+      emptyMsg.textContent = 'Error al cargar productos. Intenta más tarde.';
+      emptyMsg.style.display = 'block';
+    }
     return;
   }
 
@@ -125,10 +129,12 @@ async function cargarProductos() {
 
   if (productos.length === 0) {
     emptyMsg.style.display = 'block';
+    tiendaContenido.innerHTML = '';
     return;
   }
 
-  renderTienda(productos);
+  emptyMsg.style.display = 'none';
+  aplicarFiltrosActuales();
 }
 
 // ─── RENDER TIENDA (agrupado por categoría) ───────────────────
@@ -193,7 +199,29 @@ function crearCardProducto(p) {
   return div;
 }
 
-// ─── FILTROS ──────────────────────────────────────────────────
+// ─── FILTROS (categoría + búsqueda, combinados y reutilizables) ───
+// Se guarda el estado actual para poder volver a aplicarlo cada vez
+// que el catálogo se refresca solo (ej: el admin cambia el stock).
+function aplicarFiltrosActuales() {
+  const btnActiva = document.querySelector('.btn-categoria.activa');
+  const cat = btnActiva ? btnActiva.dataset.cat : 'todas';
+  const q = inputBuscar.value.toLowerCase().trim();
+
+  let filtrados = productos;
+
+  if (cat !== 'todas') {
+    filtrados = filtrados.filter(p => p.categoria === cat);
+  }
+  if (q) {
+    filtrados = filtrados.filter(p =>
+      p.nombre.toLowerCase().includes(q) ||
+      (p.categoria || '').toLowerCase().includes(q)
+    );
+  }
+
+  renderTienda(filtrados);
+}
+
 document.getElementById('categoriasFiltro').addEventListener('click', e => {
   const btn = e.target.closest('.btn-categoria');
   if (!btn) return;
@@ -201,21 +229,11 @@ document.getElementById('categoriasFiltro').addEventListener('click', e => {
   document.querySelectorAll('.btn-categoria').forEach(b => b.classList.remove('activa'));
   btn.classList.add('activa');
 
-  const cat = btn.dataset.cat;
-  const filtrados = cat === 'todas'
-    ? productos
-    : productos.filter(p => p.categoria === cat);
-
-  renderTienda(filtrados);
+  aplicarFiltrosActuales();
 });
 
 inputBuscar.addEventListener('input', () => {
-  const q = inputBuscar.value.toLowerCase().trim();
-  const filtrados = productos.filter(p =>
-    p.nombre.toLowerCase().includes(q) ||
-    (p.categoria || '').toLowerCase().includes(q)
-  );
-  renderTienda(filtrados);
+  aplicarFiltrosActuales();
 });
 
 // ─── CARRITO ──────────────────────────────────────────────────
@@ -493,6 +511,27 @@ async function abrirMisPedidos() {
   `).join('');
 }
 
+// ─── TIEMPO REAL: refrescar el catálogo solo cuando cambia el stock/precio ───
+// Así el cliente ve la disponibilidad real sin tener que recargar la página.
+let canalProductosTienda = null;
+
+function iniciarSuscripcionProductos() {
+  if (canalProductosTienda) return; // ya está activa
+
+  canalProductosTienda = sb
+    .channel('productos-tienda-cliente')
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'productos', filter: `user_id=eq.${TIENDA_OWNER_ID}` },
+      () => {
+        // Recarga silenciosa: no muestra "Cargando..." para no interrumpir
+        // al cliente mientras navega o escribe en el buscador.
+        cargarProductos(true);
+      }
+    )
+    .subscribe();
+}
+
 // ─── INIT ─────────────────────────────────────────────────────
 function mostrarTienda() {
   document.getElementById('pantalla-login').style.display  = 'none';
@@ -513,6 +552,7 @@ async function init() {
   if (clienteUser) {
     mostrarTienda();
     await cargarProductos();
+    iniciarSuscripcionProductos();
   }
   // Si no hay sesión, la pantalla login ya está visible por defecto
 
@@ -526,6 +566,7 @@ async function init() {
       // Acaba de iniciar sesión
       mostrarTienda();
       await cargarProductos();
+      iniciarSuscripcionProductos();
     } else if (!clienteUser && anteriorUser) {
       // Acaba de cerrar sesión
       document.getElementById('pantalla-login').style.display  = 'flex';
