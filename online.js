@@ -396,42 +396,28 @@ async function confirmarPedido() {
   if (!telefono)  { alert('Por favor ingresa tu teléfono.'); return; }
   if (!direccion) { alert('Por favor ingresa tu dirección de entrega.'); return; }
 
-  const total = carrito.reduce((s, i) => s + i.producto.precio * i.cantidad, 0);
   const btnConfirmar = document.getElementById('btnConfirmarPedido');
   btnConfirmar.disabled = true;
   btnConfirmar.textContent = 'Enviando pedido... ⏳';
 
   try {
-    // 1. Insertar pedido en la tabla `pedidos`
-    const { data: pedido, error: errPedido } = await sb
-      .from('pedidos')
-      .insert([{
-        cliente_nombre: nombre,
-        cliente_tel:    telefono,
-        cliente_email:  clienteUser?.email || null,
-        direccion:      direccion,
-        notas:          notas || null,
-        total:          total,
-        metodo_pago:    'contra_entrega',
-        estado:         'pendiente',
-        tienda_user_id: TIENDA_OWNER_ID   // ← vincula el pedido a TU tienda
-      }])
-      .select()
-      .single();
-
-    if (errPedido) throw errPedido;
-
-    // 2. Insertar los items del pedido en `items_pedido`
-    const items = carrito.map(i => ({
-      pedido_id: pedido.id,
-      nombre:    i.producto.nombre,
-      cantidad:  i.cantidad,
-      precio:    i.producto.precio,
-      subtotal:  i.producto.precio * i.cantidad
+    // El total y los precios ya NO se calculan ni se confían del navegador:
+    // el RPC crear_pedido_online recalcula todo leyendo productos.precio
+    // directamente en la base de datos (evita manipulación desde la consola).
+    const itemsParaRpc = carrito.map(i => ({
+      product_id: i.producto.id,
+      cantidad:   i.cantidad
     }));
 
-    const { error: errItems } = await sb.from('items_pedido').insert(items);
-    if (errItems) throw errItems;
+    const { data: pedido, error: errPedido } = await sb.rpc('crear_pedido_online', {
+      p_cliente_nombre: nombre,
+      p_cliente_tel:    telefono,
+      p_direccion:      direccion,
+      p_notas:          notas || null,
+      p_items:          itemsParaRpc
+    });
+
+    if (errPedido) throw errPedido;
 
     // ✅ Pedido creado — limpiar carrito y mostrar confirmación
     carrito = [];
